@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filler Word Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      padding: 20px;
+      background-color: #4CAF50;
+      color: white;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+    }
+    header p {
+      margin: 10px 0 0;
+      font-size: 1.2rem;
+    }
+    .container {
+      margin-top: 50px;
+    }
+    .circle-button {
+      width: 150px;
+      height: 150px;
+      background-color: #4CAF50;
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .circle-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+    }
+    .instructions {
+      margin-top: 20px;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+    .prompt {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 30px;
+      color: #333;
+    }
+    .transcription {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      font-size: 1.2rem;
+      color: #333;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .filler-count {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Filler Word Tracker</h1>
+    <p>Improve your communication skills by reducing filler words!</p>
+  </header>
+  <div class="container">
+    <div class="prompt" id="currentPrompt">
+      Press the button to get started!
+    </div>
+    <button class="circle-button" onclick="handleButtonClick()">Start</button>
+    <div class="transcription" id="transcription">
+      Your speech transcription will appear here.
+    </div>
+    <div class="filler-count" id="fillerCount">
+      Filler words detected: 0
+    </div>
+    <div class="instructions">
+      <strong>How It Works:</strong>
+      <ol>
+        <li>Press the button to begin the conversation.</li>
+        <li>A prompt will appear, and you can respond audibly.</li>
+        <li>Press the button again to stop your response.</li>
+        <li>The app will process your response and show your filler word count.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    let isRecording = false;
+    let recognition; // SpeechRecognition object
+    let fillerCount = 0;
+    const fillerWords = ["um", "umm", "like", "honestly", "uh", "you know", "so", "actually", "basically"]; // Common filler words
+    const prompts = [
+      "Tell me a little bit about yourself.",
+      "What is your favorite hobby, and why?",
+      "Describe your dream vacation.",
+      "What do you usually do on weekends?",
+      "If you could have any superpower, what would it be?",
+      "Who has been the most influential person in your life?",
+      "What is a skill you’ve always wanted to learn?",
+      "What’s your favorite childhood memory?",
+      "If you won the lottery, what’s the first thing you’d do?",
+      "Describe your perfect day."
+    ]; // List of dynamic prompts
+
+    // Check if the browser supports Web Speech API
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true; // Keeps listening until stopped
+      recognition.interimResults = true; // Show partial results
+      recognition.lang = 'en-US'; // Set language to English
+
+      // Process transcription results
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        document.getElementById('transcription').textContent = transcript.trim();
+        analyzeFillerWords(transcript); // Analyze the transcription for filler words
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech Recognition Error:', event.error);
+      };
+    } else {
+      alert('Your browser does not support speech recognition. Please try using Google Chrome.');
+    }
+
+    function handleButtonClick() {
+      const promptDiv = document.getElementById('currentPrompt');
+      const button = document.querySelector('.circle-button');
+      const transcriptionDiv = document.getElementById('transcription');
+
+      if (!isRecording) {
+        // Start Recording
+        isRecording = true;
+        const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+        promptDiv.textContent = randomPrompt;
+        button.textContent = "Stop";
+        button.style.backgroundColor = "#f44336"; // Change to red
+        transcriptionDiv.textContent = "Listening...";
+        fillerCount = 0; // Reset filler count
+        document.getElementById('fillerCount').textContent = "Filler words detected: 0";
+        recognition.start();
+      } else {
+        // Stop Recording
+        isRecording = false;
+        promptDiv.textContent = "Processing your response...";
+        button.textContent = "Start";
+        button.style.backgroundColor = "#4CAF50"; // Change back to green
+        recognition.stop();
+        setTimeout(() => {
+          promptDiv.textContent = "Press the button to start! A prompt will appear, and you can respond.";
+        }, 2000); // Simulate processing time
+      }
+    }
+
+    function analyzeFillerWords(transcript) {
+  const words = transcript.split(/\s+/); // Split the transcript into words
+  const lowerCaseFillerWords = fillerWords.map(word => word.toLowerCase()); // Normalize filler words
+
+  // Wrap filler words in <strong> tags
+  const processedTranscript = words
+    .map(word => {
+      if (lowerCaseFillerWords.includes(word.toLowerCase())) {
+        return `<strong>${word}</strong>`; // Highlight filler word
+      }
+      return word;
+    })
+    .join(" "); // Recombine the words into a string
+
+  // Update the filler word count
+  fillerCount = words.filter(word => lowerCaseFillerWords.includes(word.toLowerCase())).length;
+  document.getElementById('fillerCount').textContent = `Filler words detected: ${fillerCount}`;
+
+  // Display the updated transcript with highlighted filler words
+  document.getElementById('transcript').innerHTML = processedTranscript;
+}
+
+
+  </script>
+</body>
+</html>
